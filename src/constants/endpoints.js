@@ -25,4 +25,5 @@ export default {
   setStudentId: "/api/user/student-id",
   checkNotification: '/api/notifications',
   addStudentGrade: "/api/grade/add-or-update-student",
+  verifyEmail: "/api/user/verify-email",
 };
