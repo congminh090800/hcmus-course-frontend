@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemText,
   ListItemButton,
+  Button
 } from "@material-ui/core";
 import { Menu, Add } from "@mui/icons-material";
 import { connect } from "react-redux";
@@ -18,6 +19,12 @@ import Logo from "~/assets/images/google_logo.svg";
 import "./index.scss";
 import AvatarPopup from "./AvatarPopup";
 import { useHistory } from "react-router-dom";
+import Badge from '@mui/material/Badge';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import { Paper } from '@mui/material'
+import { Box } from "@material-ui/system";
+import NotificationItem from "../../classes/ClassNavbar/NotificationItem";
+
 const HideOnScroll = (props) => {
   const trigger = useScrollTrigger();
   const elevateTrigger = useScrollTrigger({
@@ -39,15 +46,30 @@ const HideOnScroll = (props) => {
 
 const AutoHideNavBar = (props) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorElNoti, setAnchorElNoti] = useState(null);
+
   const history = useHistory();
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
+  const handleClickNoti = (event) => {
+    setAnchorElNoti(event.currentTarget);
+  };
+
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const handleCloseNoti = () => {
+    setAnchorElNoti(null);
+  };
+
   const open = Boolean(anchorEl);
+
+  const openNoti = Boolean(anchorElNoti);
+  const id = open ? 'simple-popper' : undefined;
+
   return (
     <React.Fragment>
       <HideOnScroll {...props}>
@@ -105,7 +127,30 @@ const AutoHideNavBar = (props) => {
                 </ListItem>
               </List>
             </Popover>
-            <AvatarPopup user={props.user} />
+            <Box>
+              <Button onClick={handleClickNoti}>
+                <Badge badgeContent={props.user.notifications.filter(e => !e.seen).length} color="primary" style={{ margin: 16 }} >
+                  <NotificationsIcon color="action" />
+                </Badge>
+              </Button>
+              <Popover id={id} open={openNoti} anchorEl={anchorElNoti}
+                PaperProps={{ style: { maxHeight: '300px', overflowY: 'auto' } }}
+                disableScrollLock
+                onClose={handleCloseNoti}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "right",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}>
+                <Paper sx={{ border: 1, borderColor: '#F6F6F6', bgcolor: 'background.paper' }}>
+                  {[...(props.user.notifications || [])].reverse().map((notification) => <NotificationItem notification={notification} />)}
+                </Paper>
+              </Popover>
+              <AvatarPopup user={props.user} />
+            </Box>
           </Toolbar>
         </AppBar>
       </HideOnScroll>

@@ -15,6 +15,7 @@ import ParticipatingCoursePage from "./pages/courses/participate";
 import TeacherParticipatingCoursePage from "./pages/courses/teacher";
 import ClassWorkPage from "./pages/Class/classwork";
 import GradePage from "./pages/Class/grades";
+import VerifyEmailPage from "./pages/verify-email";
 
 function App() {
   const { snackbarSuccess, snackbarError } = useSelector(
@@ -56,6 +57,9 @@ function App() {
           </Route>
           <Route path="/signup">
             <SignUp />
+          </Route>
+          <Route path="/verify-email/:userId">
+            <VerifyEmailPage />
           </Route>
         </Switch>
         {!!snackbarSuccess && (

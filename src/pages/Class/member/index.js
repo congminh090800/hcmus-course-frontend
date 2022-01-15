@@ -330,19 +330,6 @@ const ClassMemberPage = () => {
           </Typography>
         </Box>
       </Box>
-      {/* {user._id == info?.owner._id && (
-        <Box
-          className="df aic "
-          p={2}
-          style={{ background: "#e8e8e8", cursor: "pointer" }}
-          onClick={() => {
-            inputRef.current?.click();
-          }}
-        >
-          <Add />
-          <Typography>Upload Student List</Typography>
-        </Box>
-      )} */}
       {info?.participants?.map((user) => {
         return <MemberItem key={user.id} user={user} />;
       })}
@@ -361,23 +348,6 @@ const ClassMemberPage = () => {
         ref={inputRef}
         onChange={uploadFile}
       />
-      {/* {user._id == info?.owner._id && (
-        <Box
-          className="df"
-          style={{ justifyContent: "end", cursor: "pointer" }}
-          mt={2}
-        >
-          <ExportExcel
-            fileName="ClassMember"
-            title="Template"
-            preLoad={async () => {
-              return await httpAuthorization.get(
-                "/api/grade/student-list-template"
-              );
-            }}
-          />
-        </Box>
-      )} */}
     </ClassLayout>
   );
 };

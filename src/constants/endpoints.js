@@ -30,4 +30,7 @@ export default {
   requestReview: "/api/grade/request-review",
   acceptRequest: "/api/grade/accept-request",
   rejectRequest: "/api/grade/reject-request",
+  checkNotification: "/api/notifications",
+  addStudentGrade: "/api/grade/add-or-update-student",
+  verifyEmail: "/api/user/verify-email",
 };

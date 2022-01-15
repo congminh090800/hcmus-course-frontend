@@ -15,6 +15,9 @@ import {
   Typography,
   Button,
   CircularProgress,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
 } from "@material-ui/core";
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -28,6 +31,8 @@ import { FileUpload, MoreVert, Preview, Tour } from "@mui/icons-material";
 import FileSaver from "file-saver";
 import endpoints from "../../../constants/endpoints";
 import { GlobalActions } from "../../../store/global";
+import httpAuthorization from "~/utils/httpAuthorization";
+import AddStudentDialog from "../../../components/classes/AddStudentDialog";
 
 const StudentDialog = ({ open, handleClose, data, student }) => {
   const [point, setPoint] = useState("");
@@ -376,9 +381,9 @@ const TableItem = ({ student }) => {
   const [value, setValue] = useState(0);
 
   const columnToShow =
-    user._id == info.owner._id
-      ? info.gradeStructure || []
-      : (info.gradeStructure || []).filter(
+    user._id == info?.owner._id
+      ? info?.gradeStructure || []
+      : (info?.gradeStructure || []).filter(
           (structure) => structure.isFinalized
         );
 
@@ -512,6 +517,12 @@ const TableItem = ({ student }) => {
                         `Max point of ${open.name} is ${open.point}`
                       )
                     );
+                  } else if (Number(value) < 0) {
+                    dispatch(
+                      GlobalActions.setSnackbarError(
+                        `Point of ${open.name} must not be negative`
+                      )
+                    );
                   } else {
                     dispatch(
                       ClassesAction.changeStudentPoint({
@@ -564,36 +575,65 @@ const HeadItem = ({ item, setLoading }) => {
   const inputRef = React.useRef(null);
   const dispatch = useDispatch();
   const open = Boolean(anchorEl);
+  const [errors, setErrors] = React.useState([]);
+  const [openErrs, setOpenErrs] = React.useState(false);
 
   const handleClose = () => {
     setAnchorEl(null);
   };
 
-  const upload = async (e) => {
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("csvFile", file);
-    formData.append("courseId", info._id);
-    formData.append("gradeComponentId", item._id);
-    e.target.value = null;
-    const result = await http.put("/api/grade/upload-grades", formData);
-    const newCourseDetail = await http.get(endpoints.getClassInfo(info.code));
+  const handleCloseErrs = () => {
+    setOpenErrs(false);
+  };
 
-    dispatch(ClassesAction.setClassInfo(newCourseDetail.data));
+  const upload = async (e) => {
+    try {
+      setErrors([]);
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append("csvFile", file);
+      formData.append("courseId", info?._id);
+      formData.append("gradeComponentId", item._id);
+      e.target.value = null;
+      const result = await http.put("/api/grade/upload-grades", formData);
+      setErrors(result.data.errors);
+      if (result.data.errors.length > 0) {
+        setOpenErrs(true);
+      }
+      const newCourseDetail = await http.get(
+        endpoints.getClassInfo(info?.code)
+      );
+      dispatch(GlobalActions.setSnackbarSuccess("Upload grade success"));
+      dispatch(ClassesAction.setClassInfo(newCourseDetail.data));
+    } catch (err) {
+      console.log(err);
+      dispatch(GlobalActions.setSnackbarError("Error occured"));
+    }
   };
 
   return (
     <>
+      <Dialog onClose={handleCloseErrs} open={openErrs}>
+        <DialogTitle>Error rows</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            <ul>
+              {errors.map(function (error, index) {
+                return <li key={index}>{error}</li>;
+              })}
+            </ul>
+          </DialogContentText>
+        </DialogContent>
+      </Dialog>
       <TableCell style={{ minWidth: 175 }}>
         <Box className="df jcsb aic">
           <Box className="df fdc">
             <Typography className="sb">{`${item.name} ${
               item.isFinalized ? "(*)" : ""
             }`}</Typography>
-
             <Typography>{`${item.point} points`}</Typography>
           </Box>
-          {user._id == info.owner._id && (
+          {user._id == info?.owner._id && (
             <IconButton onClick={(event) => setAnchorEl(event.currentTarget)}>
               <MoreVert />
             </IconButton>
@@ -605,7 +645,7 @@ const HeadItem = ({ item, setLoading }) => {
         ref={inputRef}
         onChange={upload}
         type="file"
-        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+        accept=".csv"
       />
       {open && (
         <Menu
@@ -658,7 +698,7 @@ const HeadItem = ({ item, setLoading }) => {
                   const result = await http.patch(
                     `/api/grade/finalize-column`,
                     {
-                      courseId: info._id,
+                      courseId: info?._id,
                       gradeComponentId: item._id,
                     }
                   );
@@ -675,7 +715,7 @@ const HeadItem = ({ item, setLoading }) => {
                   const result = await http.patch(
                     `/api/grade/unfinalize-column`,
                     {
-                      courseId: info._id,
+                      courseId: info?._id,
                       gradeComponentId: item._id,
                     }
                   );
@@ -701,12 +741,11 @@ const HeadItem = ({ item, setLoading }) => {
           <MenuItem
             onClick={async () => {
               setLoading(true);
-
               try {
                 const result = await http.put(`/api/grade/finalize-grades`, {
-                  courseId: info._id,
+                  courseId: info?._id,
                   gradeComponentId: item._id,
-                  listPoints: info.enrolledStudents
+                  listPoints: info?.enrolledStudents
                     .filter((student) =>
                       student.grades.find(
                         (grade) => grade.gradeComponentId == item._id
@@ -743,21 +782,148 @@ const GradePage = () => {
   const { info } = useSelector((state) => state.classes);
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
+  const inputRef = React.useRef(null);
+  const [errors, setErrors] = React.useState([]);
+  const dispatch = useDispatch();
+  const [openErrs, setOpenErrs] = React.useState(false);
+  const [openAddStudentDialog, setOpenAddStudentDialog] = useState(false);
+
+  const handleCloseErrs = () => {
+    setOpenErrs(false);
+  };
+
+  const handeCloseAddStudentDialog = () => {
+    setOpenAddStudentDialog(false);
+  };
+
+  const handleOpenAddStudentDialog = () => {
+    setOpenAddStudentDialog(true);
+  };
 
   const columnToShow =
-    user._id == info.owner._id
-      ? info.gradeStructure || []
-      : (info.gradeStructure || []).filter(
+    user._id == info?.owner._id
+      ? info?.gradeStructure || []
+      : (info?.gradeStructure || []).filter(
           (structure) => structure.isFinalized
         );
 
+  const uploadStudentList = async (e) => {
+    try {
+      setErrors([]);
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append("csvFile", file);
+      formData.append("courseId", info?._id);
+      e.target.value = null;
+      const result = await http.put("/api/grade/upload-student-list", formData);
+      setErrors(result.data.errors);
+      console.log("result", result);
+      if (result.data.errors.length > 0) {
+        setOpenErrs(true);
+      }
+      const newCourseDetail = await http.get(
+        endpoints.getClassInfo(info?.code)
+      );
+      dispatch(GlobalActions.setSnackbarSuccess("Upload grade success"));
+      dispatch(ClassesAction.setClassInfo(newCourseDetail.data));
+    } catch (err) {
+      console.log(err);
+      dispatch(GlobalActions.setSnackbarError("Error occured"));
+    }
+  };
+
   return (
     <ClassLayout maxWidth={"md"} customLoading={loading}>
+      <Dialog onClose={handleCloseErrs} open={openErrs}>
+        <DialogTitle>Error rows</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            <ul>
+              {errors.map(function (error, index) {
+                return <li key={index}>{error}</li>;
+              })}
+            </ul>
+          </DialogContentText>
+        </DialogContent>
+      </Dialog>
+      <AddStudentDialog
+        open={openAddStudentDialog}
+        onClose={handeCloseAddStudentDialog}
+        courseId={info?._id}
+        courseCode={info?.code}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        {user._id == info?.owner._id && (
+          <Box
+            className="df aic "
+            style={{ justifyContent: "end", cursor: "pointer" }}
+            mt={2}
+            onClick={() => {
+              inputRef.current?.click();
+            }}
+          >
+            <label
+              htmlFor="choose-file"
+              style={{ display: "flex", justifyContent: "center" }}
+            >
+              <input
+                style={{ display: "none" }}
+                type="file"
+                type="file"
+                accept=".csv"
+                id="choose-file"
+                onChange={uploadStudentList}
+              />
+              <Button variant="outlined" component="span">
+                Upload student list
+              </Button>
+            </label>
+          </Box>
+        )}
+        {user._id == info?.owner._id && (
+          <Box
+            className="df"
+            style={{ justifyContent: "end", cursor: "pointer" }}
+            mt={2}
+          >
+            <ExportExcel
+              fileName="ClassMember"
+              title="Template"
+              preLoad={async () => {
+                return await httpAuthorization.get(
+                  "/api/grade/student-list-template"
+                );
+              }}
+            />
+          </Box>
+        )}
+      </div>
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell style={{ minWidth: 200 }}>Student name</TableCell>
+              <TableCell style={{ minWidth: 200 }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {user._id == info?.owner._id && (
+                    <Box
+                      className="df aic "
+                      style={{ justifyContent: "end", cursor: "pointer" }}
+                      onClick={() => {
+                        inputRef.current?.click();
+                      }}
+                    >
+                      <IconButton
+                        aria-label="delete"
+                        size="small"
+                        onClick={handleOpenAddStudentDialog}
+                      >
+                        <Add fontSize="inherit" />
+                      </IconButton>
+                    </Box>
+                  )}
+                  Student name
+                </div>
+              </TableCell>
               {columnToShow.map((item) => {
                 return (
                   <HeadItem
@@ -770,7 +936,7 @@ const GradePage = () => {
               <TableCell style={{ minWidth: 175 }}>
                 <Box className="df fdc">
                   <Typography className="sb">Total Grade</Typography>
-                  <Typography>{`${info.gradeStructure
+                  <Typography>{`${info?.gradeStructure
                     .map((item) => item.point)
                     .reduce(
                       (a, b) => Number(a) + Number(b),
@@ -787,7 +953,7 @@ const GradePage = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      {user._id == info?.owner._id && (
+      {
         <Box className="df " style={{ justifyContent: "end" }}>
           <Box
             className="df"
@@ -800,17 +966,17 @@ const GradePage = () => {
                 [
                   "Name",
                   "StudentId",
-                  ...(info.gradeStructure || []).map(
+                  ...(info?.gradeStructure || []).map(
                     (item) => `${item.name} : ${item.point}`
                   ),
-                  `Total Grade: ${info.gradeStructure
+                  `Total Grade: ${info?.gradeStructure
                     .map((item) => item.point)
                     .reduce((a, b) => Number(a) + Number(b), 0)}`,
                 ],
-                ...(info.enrolledStudents || []).map((student) => [
+                ...(info?.enrolledStudents || []).map((student) => [
                   student.fullName,
                   student.studentId,
-                  ...(info.gradeStructure || []).map(
+                  ...(info?.gradeStructure || []).map(
                     (item) =>
                       student?.grades?.find(
                         (grade) => grade.gradeComponentId == item._id
@@ -824,7 +990,7 @@ const GradePage = () => {
             />
           </Box>
         </Box>
-      )}
+      }
     </ClassLayout>
   );
 };

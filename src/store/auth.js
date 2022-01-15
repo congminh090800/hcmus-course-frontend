@@ -53,6 +53,10 @@ export const auth = createSlice({
       const newUser = { ...state.user, studentId: payload };
       state.user = newUser;
     },
+    UPDATE_USER_NOTIFICATIONS: (state, { payload }) => {
+      const newUser = { ...state.user, notifications: payload };
+      state.user = newUser;
+    }
   },
   extraReducers: (builder) => {
     builder.addCase(updateAccessToken.fulfilled, (state, { payload }) => {
@@ -84,6 +88,7 @@ export const {
   UPDATE_USER_AVATAR,
   UPDATE_USER_INFO,
   SET_USER_STUDENT_ID,
+  UPDATE_USER_NOTIFICATIONS,
 } = auth.actions;
 
 export default auth.reducer;

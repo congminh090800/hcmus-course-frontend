@@ -39,6 +39,7 @@ const ClassLayout = ({ children, maxWidth, style, customLoading }) => {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
+        paddingBottom: "50px",
       }}
     >
       <ClassNavbar loading={loading || customLoading} />
