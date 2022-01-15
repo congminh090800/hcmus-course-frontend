@@ -27,7 +27,7 @@ import { ExportExcel } from "../../../components/common/ExportExcel";
 import { useState } from "react";
 import { ClassesAction } from "../../../store/class";
 import http from "../../../utils/httpAuthorization";
-import { FileUpload, MoreVert, Preview, Tour } from "@mui/icons-material";
+import { Add, FileUpload, MoreVert, Preview, Tour } from "@mui/icons-material";
 import FileSaver from "file-saver";
 import endpoints from "../../../constants/endpoints";
 import { GlobalActions } from "../../../store/global";
