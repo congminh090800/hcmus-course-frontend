@@ -14,6 +14,7 @@ import {
   TableRow,
   Typography,
   Button,
+  CircularProgress,
 } from "@material-ui/core";
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -23,10 +24,346 @@ import { ExportExcel } from "../../../components/common/ExportExcel";
 import { useState } from "react";
 import { ClassesAction } from "../../../store/class";
 import http from "../../../utils/httpAuthorization";
-import { FileUpload, MoreVert } from "@mui/icons-material";
+import { FileUpload, MoreVert, Preview, Tour } from "@mui/icons-material";
 import FileSaver from "file-saver";
 import endpoints from "../../../constants/endpoints";
 import { GlobalActions } from "../../../store/global";
+
+const StudentDialog = ({ open, handleClose, data, student }) => {
+  const [point, setPoint] = useState("");
+  const [explanation, setExplanation] = useState("");
+  const { info } = useSelector((state) => state.classes);
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const dispatch = useDispatch();
+  const gradeData = student?.grades?.find(
+    (grade) => grade.gradeComponentId == data?._id
+  );
+  React.useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const response = await http.get(
+        endpoints.getRequestStatus(info._id, data._id)
+      );
+      if (response.data) {
+        setRequest(response.data);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => {
+        handleClose();
+      }}
+      maxWidth="xs"
+      fullWidth
+    >
+      <Box
+        style={{
+          padding: "16px 16px 0px",
+        }}
+      >
+        <Typography className="sb">{`Review ${data.name}'s grade : ${
+          gradeData?.point || "-"
+        } points`}</Typography>
+      </Box>
+      {request && (
+        <>
+          <Box
+            style={{
+              padding: "16px 16px 0",
+              paddingBottom: request?.status == "pending" ? "16px" : "0",
+            }}
+          >
+            <Typography>Your current request</Typography>
+            <Box
+              style={{
+                border: `1px solid ${
+                  request.status == "accepted"
+                    ? "#66bb6a"
+                    : request.status == "rejected"
+                    ? "#f44336"
+                    : "#ffa726"
+                }`,
+                color:
+                  request.status == "accepted"
+                    ? "#66bb6a"
+                    : request.status == "rejected"
+                    ? "#f44336"
+                    : "#ffa726",
+                borderRadius: 8,
+              }}
+            >
+              <Box
+                p={2}
+                style={{
+                  ...(request.status != "pending"
+                    ? {
+                        borderBottom: `1px solid ${
+                          request.status == "accepted"
+                            ? "#66bb6a"
+                            : request.status == "rejected"
+                            ? "#f44336"
+                            : "#ffa726"
+                        }`,
+                      }
+                    : {
+                        border: `1px solid ${
+                          request.status == "accepted"
+                            ? "#66bb6a"
+                            : request.status == "rejected"
+                            ? "#f44336"
+                            : "#ffa726"
+                        }`,
+                      }),
+
+                  color:
+                    request.status == "accepted"
+                      ? "#66bb6a"
+                      : request.status == "rejected"
+                      ? "#f44336"
+                      : "#ffa726",
+                  borderRadius: 8,
+                }}
+                className="df jcsb"
+              >
+                <Box>
+                  <Typography>Point: {request.expectedGrade}</Typography>
+                  <Typography
+                    style={{ maxWidth: 200 }}
+                    className="one-line-text"
+                  >
+                    Explaination: {request.explanation}
+                  </Typography>
+                </Box>
+                <Box className="df aic jcc sb">{request.status}</Box>
+              </Box>
+              {request.status != "pending" && (
+                <Box p={2}>
+                  {request.status == "accepted" && (
+                    <Typography>Final Grade: {request.finalGrade}</Typography>
+                  )}
+                  <Typography>Comment: {request.comment}</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </>
+      )}
+      {loading ? (
+        <Box className="df aic jcc fdc" p={3}>
+          <CircularProgress />
+          <Typography>Loading</Typography>
+        </Box>
+      ) : (
+        <>
+          {!(request?.status == "pending") && (
+            <Box className="df fdc" p={2}>
+              <Typography>Review new request</Typography>
+              <TextField
+                label="Expected point"
+                variant="outlined"
+                margin="dense"
+                type="number"
+                value={point}
+                onChange={(e) => {
+                  setPoint(e.target.value);
+                }}
+              ></TextField>
+              <TextField
+                multiline
+                style={{ marginTop: 16 }}
+                rows={3}
+                placeholder="Your reason here"
+                label="Explanation"
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+              ></TextField>
+              <Box
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  justifyContent: "end",
+                }}
+                mt={1}
+              >
+                {sending && (
+                  <Box mr={2} className="df aic">
+                    <Typography variant="body2" color="textSecondary">
+                      Sending request...
+                    </Typography>
+                  </Box>
+                )}
+                <Button
+                  onClick={async () => {
+                    try {
+                      setSending(true);
+                      await http.post(endpoints.requestReview, {
+                        courseId: info._id,
+                        gradeComponentId: data._id,
+                        expectedGrade: point,
+                        explanation: explanation,
+                      });
+                      dispatch(
+                        GlobalActions.setSnackbarSuccess(
+                          "Request sent successfully!"
+                        )
+                      );
+                      handleClose();
+                      setSending(false);
+                    } catch (error) {
+                      setSending(false);
+                      dispatch(GlobalActions.setSnackbarError(error));
+                    }
+                  }}
+                >
+                  Send request
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </>
+      )}
+    </Dialog>
+  );
+};
+
+const ReviewDialog = ({ open, handleClose, data, student }) => {
+  const { info } = useSelector((state) => state.classes);
+  const [request, setRequest] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const dispatch = useDispatch();
+  const [point, setPoint] = useState("");
+  const [comment, setComment] = useState("");
+
+  React.useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const response = await http.get(
+        endpoints.getRequestStatus(info._id, data._id, student.studentId)
+      );
+      if (response.data) {
+        setRequest(response.data);
+      }
+      setLoading(false);
+    })();
+  }, []);
+  return (
+    <Dialog open={open} onClose={() => handleClose()} maxWidth="xs" fullWidth>
+      <Box p={2} className="df fdc">
+        <Box>
+          <Typography className="sb">
+            Review {student.fullName}'s grade on {data.name}
+          </Typography>
+        </Box>
+        {loading ? (
+          <Box className="df aic jcc fdc" p={3}>
+            <CircularProgress />
+            <Typography>Loading</Typography>
+          </Box>
+        ) : (
+          <>
+            <Box className="df">
+              <Typography className="sb">
+                Expected Point: {request?.expectedGrade}
+              </Typography>
+            </Box>
+            <Typography className="sb df" style={{ wordBreak: "break-word" }}>
+              Reason: <Typography> {request?.explanation}</Typography>
+            </Typography>
+            <Box className="df fdc" mt={2}>
+              <Typography>Grading</Typography>
+              <TextField
+                label="Point"
+                variant="outlined"
+                margin="dense"
+                type="number"
+                value={point}
+                onChange={(e) => {
+                  setPoint(e.target.value);
+                }}
+              ></TextField>
+              <TextField
+                multiline
+                style={{ marginTop: 16 }}
+                rows={3}
+                placeholder="Your comment here"
+                label="Comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              ></TextField>
+            </Box>
+          </>
+        )}
+      </Box>
+      <Box className="df aic" style={{ justifyContent: "end" }} p={2}>
+        {sending && <Typography color="textSecondary">Reviewing...</Typography>}
+        <Button
+          variant="outlined"
+          style={{ marginRight: 16 }}
+          onClick={async () => {
+            if (!comment) {
+              dispatch(
+                GlobalActions.setSnackbarError("Comment can't be empty")
+              );
+              return;
+            }
+            try {
+              setSending(true);
+              await http.post(endpoints.rejectRequest, {
+                courseId: info._id,
+                gradeComponentId: data._id,
+                comment,
+                userRequestId: request.userRequestId,
+              });
+              dispatch(GlobalActions.setSnackbarSuccess("Review Rejected"));
+              handleClose();
+              setSending(false);
+            } catch (error) {
+              setSending(false);
+              dispatch(GlobalActions.setSnackbarError(error.message));
+            }
+          }}
+        >
+          Decline
+        </Button>
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={async () => {
+            if (!point) {
+              dispatch(GlobalActions.setSnackbarError("Point can't be empty"));
+              return;
+            }
+            try {
+              setSending(true);
+              await http.post(endpoints.acceptRequest, {
+                courseId: info._id,
+                gradeComponentId: data._id,
+                grade: point,
+                comment,
+                userRequestId: request.userRequestId,
+              });
+              dispatch(GlobalActions.setSnackbarSuccess("Review accepted"));
+              setSending(false);
+              handleClose();
+            } catch (error) {
+              setSending(false);
+              dispatch(GlobalActions.setSnackbarError(error.message));
+            }
+          }}
+        >
+          Accept
+        </Button>
+      </Box>
+    </Dialog>
+  );
+};
 
 const TableItem = ({ student }) => {
   const { info } = useSelector((state) => state.classes);
@@ -34,6 +371,8 @@ const TableItem = ({ student }) => {
   const [hover, setHover] = useState(false);
   const dispatch = useDispatch();
   const [open, setOpen] = useState(null);
+  const [openStudent, setOpenStudent] = useState(null);
+  const [openReview, setOpenReview] = useState(null);
   const [value, setValue] = useState(0);
 
   const columnToShow =
@@ -93,16 +432,38 @@ const TableItem = ({ student }) => {
           </Box>
         </TableCell>
         {columnToShow.map((item) => {
+          const data = student?.grades?.find(
+            (grade) => grade.gradeComponentId == item?._id
+          );
+
           return (
             <TableCell
               style={{ cursor: "pointer" }}
               onClick={() => {
-                if (user._id == info.owner._id) setOpen(item);
+                if (
+                  data?.inReview &&
+                  (user._id == info.owner._id ||
+                    info.teachers
+                      .map((teacher) => teacher._id)
+                      .includes(user._id))
+                ) {
+                  setOpenReview(item);
+                  return;
+                }
+                if (
+                  user._id == info.owner._id ||
+                  info.teachers.map((teacher) => teacher._id).includes(user._id)
+                ) {
+                  setOpen(item);
+                  return;
+                }
+                if (data?.point) {
+                  setOpenStudent(item);
+                }
               }}
             >
-              {student?.grades?.find(
-                (grade) => grade.gradeComponentId == item?._id
-              )?.point || "-"}
+              {data?.point || "-"}
+              {data?.inReview && <Tour />}
             </TableCell>
           );
         })}
@@ -171,6 +532,26 @@ const TableItem = ({ student }) => {
             </Box>
           </Box>
         </Dialog>
+      )}
+      {!!openReview && (
+        <ReviewDialog
+          open={!!openReview}
+          handleClose={() => {
+            setOpenReview(null);
+          }}
+          data={openReview}
+          student={student}
+        />
+      )}
+      {!!openStudent && (
+        <StudentDialog
+          student={student}
+          open={!!openStudent}
+          handleClose={() => {
+            setOpenStudent(null);
+          }}
+          data={openStudent}
+        />
       )}
     </>
   );

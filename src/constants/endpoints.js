@@ -23,4 +23,11 @@ export default {
   findStudentMapping: (courseId) => `/api/courses/mapping/find/${courseId}`,
   createStructure: "/api/courses/grade",
   setStudentId: "/api/user/student-id",
+  getRequestStatus: (courseId, gradeComponentId, studentId = "") =>
+    `/api/grade/request-status?courseId=${courseId}&gradeComponentId=${gradeComponentId}${
+      studentId ? "&studentId=" + studentId : ""
+    }`,
+  requestReview: "/api/grade/request-review",
+  acceptRequest: "/api/grade/accept-request",
+  rejectRequest: "/api/grade/reject-request",
 };
