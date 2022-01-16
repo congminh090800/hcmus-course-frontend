@@ -381,7 +381,8 @@ const TableItem = ({ student }) => {
   const [value, setValue] = useState(0);
 
   const columnToShow =
-    user._id == info?.owner._id
+    user._id == info?.owner._id ||
+    info?.teachers.map((item) => item._id).includes(user._id)
       ? info?.gradeStructure || []
       : (info?.gradeStructure || []).filter(
           (structure) => structure.isFinalized
@@ -633,7 +634,8 @@ const HeadItem = ({ item, setLoading }) => {
             }`}</Typography>
             <Typography>{`${item.point} points`}</Typography>
           </Box>
-          {user._id == info?.owner._id && (
+          {(user._id == info?.owner._id ||
+            info?.teachers.map((item) => item._id).includes(user._id)) && (
             <IconButton onClick={(event) => setAnchorEl(event.currentTarget)}>
               <MoreVert />
             </IconButton>
@@ -801,7 +803,8 @@ const GradePage = () => {
   };
 
   const columnToShow =
-    user._id == info?.owner._id
+    user._id == info?.owner._id ||
+    info?.teachers.map((item) => item._id).includes(user._id)
       ? info?.gradeStructure || []
       : (info?.gradeStructure || []).filter(
           (structure) => structure.isFinalized
@@ -853,50 +856,52 @@ const GradePage = () => {
         courseCode={info?.code}
       />
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        {user._id == info?.owner._id && (
-          <Box
-            className="df aic "
-            style={{ justifyContent: "end", cursor: "pointer" }}
-            mt={2}
-            onClick={() => {
-              inputRef.current?.click();
-            }}
-          >
-            <label
-              htmlFor="choose-file"
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <input
-                style={{ display: "none" }}
-                type="file"
-                type="file"
-                accept=".csv"
-                id="choose-file"
-                onChange={uploadStudentList}
-              />
-              <Button variant="outlined" component="span">
-                Upload student list
-              </Button>
-            </label>
-          </Box>
-        )}
-        {user._id == info?.owner._id && (
-          <Box
-            className="df"
-            style={{ justifyContent: "end", cursor: "pointer" }}
-            mt={2}
-          >
-            <ExportExcel
-              fileName="ClassMember"
-              title="Template"
-              preLoad={async () => {
-                return await httpAuthorization.get(
-                  "/api/grade/student-list-template"
-                );
+        {user._id == info?.owner._id ||
+          (info?.teachers.map((item) => item._id).includes(user._id) && (
+            <Box
+              className="df aic "
+              style={{ justifyContent: "end", cursor: "pointer" }}
+              mt={2}
+              onClick={() => {
+                inputRef.current?.click();
               }}
-            />
-          </Box>
-        )}
+            >
+              <label
+                htmlFor="choose-file"
+                style={{ display: "flex", justifyContent: "center" }}
+              >
+                <input
+                  style={{ display: "none" }}
+                  type="file"
+                  type="file"
+                  accept=".csv"
+                  id="choose-file"
+                  onChange={uploadStudentList}
+                />
+                <Button variant="outlined" component="span">
+                  Upload student list
+                </Button>
+              </label>
+            </Box>
+          ))}
+        {user._id == info?.owner._id ||
+          (info?.teachers.map((item) => item._id).includes(user._id) && (
+            <Box
+              className="df"
+              style={{ justifyContent: "end", cursor: "pointer" }}
+              mt={2}
+            >
+              <ExportExcel
+                fileName="ClassMember"
+                title="Template"
+                preLoad={async () => {
+                  return await httpAuthorization.get(
+                    "/api/grade/student-list-template"
+                  );
+                }}
+              />
+            </Box>
+          ))}
       </div>
       <TableContainer>
         <Table>
