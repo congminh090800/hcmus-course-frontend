@@ -856,52 +856,52 @@ const GradePage = () => {
         courseCode={info?.code}
       />
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        {user._id == info?.owner._id ||
-          (info?.teachers.map((item) => item._id).includes(user._id) && (
-            <Box
-              className="df aic "
-              style={{ justifyContent: "end", cursor: "pointer" }}
-              mt={2}
-              onClick={() => {
-                inputRef.current?.click();
-              }}
+        {(user._id == info?.owner._id ||
+          info?.teachers.map((item) => item._id).includes(user._id)) && (
+          <Box
+            className="df aic "
+            style={{ justifyContent: "end", cursor: "pointer" }}
+            mt={2}
+            onClick={() => {
+              inputRef.current?.click();
+            }}
+          >
+            <label
+              htmlFor="choose-file"
+              style={{ display: "flex", justifyContent: "center" }}
             >
-              <label
-                htmlFor="choose-file"
-                style={{ display: "flex", justifyContent: "center" }}
-              >
-                <input
-                  style={{ display: "none" }}
-                  type="file"
-                  type="file"
-                  accept=".csv"
-                  id="choose-file"
-                  onChange={uploadStudentList}
-                />
-                <Button variant="outlined" component="span">
-                  Upload student list
-                </Button>
-              </label>
-            </Box>
-          ))}
-        {user._id == info?.owner._id ||
-          (info?.teachers.map((item) => item._id).includes(user._id) && (
-            <Box
-              className="df"
-              style={{ justifyContent: "end", cursor: "pointer" }}
-              mt={2}
-            >
-              <ExportExcel
-                fileName="ClassMember"
-                title="Template"
-                preLoad={async () => {
-                  return await httpAuthorization.get(
-                    "/api/grade/student-list-template"
-                  );
-                }}
+              <input
+                style={{ display: "none" }}
+                type="file"
+                type="file"
+                accept=".csv"
+                id="choose-file"
+                onChange={uploadStudentList}
               />
-            </Box>
-          ))}
+              <Button variant="outlined" component="span">
+                Upload student list
+              </Button>
+            </label>
+          </Box>
+        )}
+        {(user._id == info?.owner._id ||
+          info?.teachers.map((item) => item._id).includes(user._id)) && (
+          <Box
+            className="df"
+            style={{ justifyContent: "end", cursor: "pointer" }}
+            mt={2}
+          >
+            <ExportExcel
+              fileName="ClassMember"
+              title="Template"
+              preLoad={async () => {
+                return await httpAuthorization.get(
+                  "/api/grade/student-list-template"
+                );
+              }}
+            />
+          </Box>
+        )}
       </div>
       <TableContainer>
         <Table>
